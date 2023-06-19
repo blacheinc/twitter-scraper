@@ -137,14 +137,13 @@ func getTweetTimeline(ctx context.Context, query string, maxTweetsNbr int, fetch
 				default:
 				}
 
-				if tweetsNbr < maxTweetsNbr {
-					nextCursor = next
-					channel <- &TweetResult{Tweet: *tweet}
-				} else {
-					break
-				}
-				tweetsNbr++
+				channel <- &TweetResult{Tweet: *tweet}
 			}
+			if next == "" {
+				break
+			}
+
+			nextCursor = next
 		}
 	}(query)
 	return channel

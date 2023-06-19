@@ -3,7 +3,7 @@ package twitterscraper_test
 import (
 	"testing"
 
-	twitterscraper "github.com/n0madic/twitter-scraper"
+	twitterscraper "github.com/Funmi4194/twitter-scraper"
 )
 
 func TestGetTrends(t *testing.T) {
