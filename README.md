@@ -1,20 +1,47 @@
 # Twitter Scraper
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/Funmi4194/twitter-scraper.svg)](https://pkg.go.dev/github.com/Funmi4194/twitter-scraper)
+[![Go Reference](https://pkg.go.dev/badge/github.com/blacheinc/twitter-scraper.svg)](https://pkg.go.dev/github.com/blacheinc/twitter-scraper)
 
-Twitter's API is annoying to work with, and has lots of limitations —
-luckily their frontend (JavaScript) has it's own API, which I reverse-engineered.
-No API rate limits. No tokens needed. No restrictions. Extremely fast.
-
-You can use this library to get the text of any user's Tweets trivially.
+This is an extended fork of [n0madic/twitter-scraper](https://github.com/n0madic/twitter-scraper)
 
 ## Installation
 
 ```shell
-go get -u github.com/Funmi4194/twitter-scraper
+go get -u github.com/blacheinc/twitter-scraper
 ```
 
 ## Usage
+
+### Get favorite tweets
+
+```golang
+package main
+
+import (
+    "log"
+    twitterscraper "github.com/blacheinc/twitter-scraper"
+)
+
+func main() {
+    scraper := twitterscraper.New()
+
+	if err = scraper.Login("username", "password"); err != nil {
+		return false, err
+	}
+
+	// get the logged in user cookie
+	cookie := scraper.GetCookies()
+
+	// set cookie for subsequent
+	scraper.SetCookies(cookie)
+
+	tweets := scraper.FavoriteTweets(context.Background(), twitterUsername, 10)
+
+    for tweet := range tweets {
+        log.Println(tweet.Text)
+    }
+}
+```
 
 ### Get user tweets
 
@@ -24,7 +51,7 @@ package main
 import (
     "context"
     "fmt"
-    twitterscraper "github.com/Funmi4194/twitter-scraper"
+    twitterscraper "github.com/blacheinc/twitter-scraper"
 )
 
 func main() {
@@ -49,7 +76,7 @@ package main
 import (
     "fmt"
 
-    twitterscraper "github.com/Funmi4194/twitter-scraper"
+    twitterscraper "github.com/blacheinc/twitter-scraper"
 )
 
 func main() {
@@ -74,7 +101,7 @@ package main
 import (
     "context"
     "fmt"
-    twitterscraper "github.com/Funmi4194/twitter-scraper"
+    twitterscraper "github.com/blacheinc/twitter-scraper"
 )
 
 func main() {
@@ -97,7 +124,6 @@ The search ends if we have 50 tweets.
 
 See [Rules and filtering](https://developer.twitter.com/en/docs/tweets/rules-and-filtering/overview/standard-operators) for build standard queries.
 
-
 #### Set search mode
 
 ```golang
@@ -106,11 +132,11 @@ scraper.SetSearchMode(twitterscraper.SearchLatest)
 
 Options:
 
-* `twitterscraper.SearchTop` - default mode
-* `twitterscraper.SearchLatest` - live mode
-* `twitterscraper.SearchPhotos` - image mode
-* `twitterscraper.SearchVideos` - video mode
-* `twitterscraper.SearchUsers` - user mode
+- `twitterscraper.SearchTop` - default mode
+- `twitterscraper.SearchLatest` - live mode
+- `twitterscraper.SearchPhotos` - image mode
+- `twitterscraper.SearchVideos` - video mode
+- `twitterscraper.SearchUsers` - user mode
 
 ### Get profile
 
@@ -119,7 +145,7 @@ package main
 
 import (
     "fmt"
-    twitterscraper "github.com/Funmi4194/twitter-scraper"
+    twitterscraper "github.com/blacheinc/twitter-scraper"
 )
 
 func main() {
@@ -140,7 +166,7 @@ package main
 import (
     "context"
     "fmt"
-    twitterscraper "github.com/Funmi4194/twitter-scraper"
+    twitterscraper "github.com/blacheinc/twitter-scraper"
 )
 
 func main() {
@@ -165,7 +191,7 @@ package main
 
 import (
     "fmt"
-    twitterscraper "github.com/Funmi4194/twitter-scraper"
+    twitterscraper "github.com/blacheinc/twitter-scraper"
 )
 
 func main() {

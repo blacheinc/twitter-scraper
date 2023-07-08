@@ -1,4 +1,4 @@
-module github.com/Funmi4194/twitter-scraper
+module github.com/blacheinc/twitter-scraper
 
 go 1.16
 

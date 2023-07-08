@@ -3,7 +3,7 @@ package twitterscraper_test
 import (
 	"testing"
 
-	twitterscraper "github.com/Funmi4194/twitter-scraper"
+	twitterscraper "github.com/blacheinc/twitter-scraper"
 )
 
 func TestGetGuestToken(t *testing.T) {

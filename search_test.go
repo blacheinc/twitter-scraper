@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	twitterscraper "github.com/Funmi4194/twitter-scraper"
+	twitterscraper "github.com/blacheinc/twitter-scraper"
 )
 
 var searchScraper = twitterscraper.New()

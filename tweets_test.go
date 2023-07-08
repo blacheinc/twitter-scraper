@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	twitterscraper "github.com/Funmi4194/twitter-scraper"
+	twitterscraper "github.com/blacheinc/twitter-scraper"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 )
