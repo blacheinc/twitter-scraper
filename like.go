@@ -5,7 +5,7 @@ import (
 	"net/url"
 )
 
-// SearchTweets returns channel with tweets for a given search query
+// FavoriteTweets returns a channel of tweets liked by the given user. If maxTweetsNbr is 0, all tweets will be returned (use with caution due to Twitter rate limiting).
 func (s *Scraper) FavoriteTweets(ctx context.Context, user string, maxTweetsNbr int) <-chan *TweetResult {
 	return getTweetTimeline(ctx, user, maxTweetsNbr, s.FetchFavoriteTweets)
 }

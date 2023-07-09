@@ -8,7 +8,7 @@ import (
 
 const searchURL = "https://api.twitter.com/2/search/adaptive.json"
 
-// SearchTweets returns channel with tweets for a given search query
+// SearchTweets returns channel with tweets for a given search query. If maxTweetsNbr is 0, all tweets will be returned (use with caution due to Twitter rate limiting).
 func (s *Scraper) SearchTweets(ctx context.Context, query string, maxTweetsNbr int) <-chan *TweetResult {
 	return getTweetTimeline(ctx, query, maxTweetsNbr, s.FetchSearchTweets)
 }

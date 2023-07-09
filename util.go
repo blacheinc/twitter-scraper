@@ -111,7 +111,7 @@ func getTweetTimeline(ctx context.Context, query string, maxTweetsNbr int, fetch
 		defer close(channel)
 		var nextCursor string
 		tweetsNbr := 0
-		for tweetsNbr < maxTweetsNbr {
+		for tweetsNbr < maxTweetsNbr || maxTweetsNbr == 0 {
 			select {
 			case <-ctx.Done():
 				channel <- &TweetResult{Error: ctx.Err()}
@@ -137,13 +137,24 @@ func getTweetTimeline(ctx context.Context, query string, maxTweetsNbr int, fetch
 				default:
 				}
 
-				channel <- &TweetResult{Tweet: *tweet}
-			}
-			if next == "" {
-				break
+				if tweetsNbr < maxTweetsNbr || maxTweetsNbr == 0 {
+					nextCursor = next
+					channel <- &TweetResult{Tweet: *tweet}
+				} else {
+					break
+				}
+
+				// when maxTweetsNbr is 0, we want to fetch all tweets
+				if maxTweetsNbr > 0 {
+					tweetsNbr++
+				}
+
+				// channel <- &TweetResult{Tweet: *tweet}
 			}
 
-			nextCursor = next
+			if nextCursor == "" {
+				break
+			}
 		}
 	}(query)
 	return channel

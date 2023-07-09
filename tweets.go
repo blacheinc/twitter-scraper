@@ -6,7 +6,7 @@ import (
 	"net/url"
 )
 
-// GetTweets returns channel with tweets for a given user.
+// GetTweets returns channel with tweets for a given user. If maxTweetsNbr is 0, all tweets will be returned (use with caution due to Twitter rate limiting).
 func (s *Scraper) GetTweets(ctx context.Context, user string, maxTweetsNbr int) <-chan *TweetResult {
 	return getTweetTimeline(ctx, user, maxTweetsNbr, s.FetchTweets)
 }
