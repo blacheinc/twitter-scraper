@@ -183,6 +183,15 @@ func parseProfile(user legacyUser) Profile {
 	return profile
 }
 
+//It returns the newly created Profile containing a userId
+func parseProfiles(user entrys) Profile {
+	profile := Profile{
+		UserID: user.Content.ItemContent.UserResults.Result.RestID,
+	}
+
+	return profile
+}
+
 func mapToJSONString(data map[string]interface{}) string {
 	jsonBytes, err := json.Marshal(data)
 	if err != nil {
