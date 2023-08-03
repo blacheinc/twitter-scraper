@@ -12,6 +12,48 @@ go get -u github.com/blacheinc/twitter-scraper
 
 ## Usage
 
+
+### Get user followers
+
+```golang
+package main
+
+import (
+    "log"
+    twitterscraper "github.com/blacheinc/twitter-scraper"
+)
+
+func main() {
+ scraper := twitterscraper.New()
+
+	if err = scraper.Login("username", "password"); err != nil {
+		return false, err
+	}
+	
+    // get the logged in user cookie
+	cookie := scraper.GetCookies()
+
+    // set cookie for subsequent
+	scraper.SetCookies(cookie)
+
+    // Get the user profile to extract the followers count 
+    profile, err := scraper.GetProfile(twitterUsername)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	followers := scraper.GetFollowers(context.Background(), twitterUserID, profile.FollowersCount)
+	
+	for follower := range followers {
+        // you will get the userIds in this format "user-947425510262562817"
+        // when checking if a userid is among the return Ids use this
+        // `formattedUserId := "user-" + user ` then compare.
+	    fmt.Println(follower.UserID)
+	}
+}
+```
+
+
 ### Get favorite tweets
 
 ```golang
