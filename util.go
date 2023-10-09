@@ -111,7 +111,7 @@ func getTweetTimeline(ctx context.Context, query string, maxTweetsNbr int, fetch
 		defer close(channel)
 		var nextCursor string
 		tweetsNbr := 0
-		for tweetsNbr < maxTweetsNbr || maxTweetsNbr == 0 {
+		for tweetsNbr < maxTweetsNbr {
 			select {
 			case <-ctx.Done():
 				channel <- &TweetResult{Error: ctx.Err()}
@@ -137,24 +137,13 @@ func getTweetTimeline(ctx context.Context, query string, maxTweetsNbr int, fetch
 				default:
 				}
 
-				if tweetsNbr < maxTweetsNbr || maxTweetsNbr == 0 {
-					nextCursor = next
-					channel <- &TweetResult{Tweet: *tweet}
-				} else {
-					break
-				}
-
-				// when maxTweetsNbr is 0, we want to fetch all tweets
-				if maxTweetsNbr > 0 {
-					tweetsNbr++
-				}
-
-				// channel <- &TweetResult{Tweet: *tweet}
+				channel <- &TweetResult{Tweet: *tweet}
 			}
-
-			if nextCursor == "" {
+			if next == "" {
 				break
 			}
+
+			nextCursor = next
 		}
 	}(query)
 	return channel
@@ -189,6 +178,15 @@ func parseProfile(user legacyUser) Profile {
 
 	if len(user.Entities.URL.Urls) > 0 {
 		profile.Website = user.Entities.URL.Urls[0].ExpandedURL
+	}
+
+	return profile
+}
+
+// It returns the newly created Profile containing a userId
+func parseProfiles(user entrys) Profile {
+	profile := Profile{
+		UserID: user.Content.ItemContent.UserResults.Result.RestID,
 	}
 
 	return profile
