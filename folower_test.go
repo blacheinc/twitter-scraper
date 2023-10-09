@@ -3,8 +3,7 @@ package twitterscraper_test
 import (
 	"context"
 	"testing"
-
-	twitterscraper "github.com/Funmi4194/twitter-scraper"
+	twitterscraper "github.com/blacheinc/twitter-scraper"
 )
 
 func TestGetUserFollowers(t *testing.T) {
