@@ -23,9 +23,11 @@ type Scraper struct {
 	guestCreatedAt time.Time
 	includeReplies bool
 	isLogged       bool
+	isOpenAccount  bool
 	oAuthToken     string
 	oAuthSecret    string
 	proxy          string
+	userAgent      string
 	searchMode     SearchMode
 	wg             sync.WaitGroup
 }
@@ -48,12 +50,14 @@ const (
 
 // default http client timeout
 const DefaultClientTimeout = 10 * time.Second
+const DefaultUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36"
 
 // New creates a Scraper object
 func New() *Scraper {
 	jar, _ := cookiejar.New(nil)
 	return &Scraper{
 		bearerToken: bearerToken,
+		userAgent:   DefaultUserAgent,
 		client: &http.Client{
 			Jar:     jar,
 			Timeout: DefaultClientTimeout,
@@ -129,8 +133,29 @@ func (s *Scraper) SetProxy(proxyAddr string) error {
 			Timeout:   s.client.Timeout,
 			KeepAlive: s.client.Timeout,
 		}
-		socksHostPort := strings.ReplaceAll(proxyAddr, "socks5://", "")
-		dialSocksProxy, err := proxy.SOCKS5("tcp", socksHostPort, nil, baseDialer)
+		proxyURL, err := url.Parse(proxyAddr)
+		if err != nil {
+			panic(err)
+		}
+
+		// username password
+		username := proxyURL.User.Username()
+		password, _ := proxyURL.User.Password()
+
+		// ip and port
+		host := proxyURL.Hostname()
+		port := proxyURL.Port()
+
+		var auth *proxy.Auth
+
+		if username != "" || password != "" {
+			auth = &proxy.Auth{
+				User:     username,
+				Password: password,
+			}
+		}
+
+		dialSocksProxy, err := proxy.SOCKS5("tcp", host+":"+port, auth, baseDialer)
 		if err != nil {
 			return errors.New("error creating socks5 proxy :" + err.Error())
 		}
@@ -146,4 +171,12 @@ func (s *Scraper) SetProxy(proxyAddr string) error {
 		return nil
 	}
 	return errors.New("only support http(s) or socks5 protocol")
+}
+
+func (s *Scraper) SetUserAgent(userAgent string) {
+	s.userAgent = userAgent
+}
+
+func (s *Scraper) GetUserAgent() string {
+	return s.userAgent
 }

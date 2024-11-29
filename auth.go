@@ -14,6 +14,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"math/rand"
 )
 
 const (
@@ -29,6 +31,11 @@ const (
 )
 
 type (
+	OpenAccount struct {
+		OAuthToken       string `json:"oauth_token"`
+		OAuthTokenSecret string `json:"oauth_token_secret"`
+	}
+
 	flow struct {
 		Errors []struct {
 			Code    int    `json:"code"`
@@ -37,11 +44,8 @@ type (
 		FlowToken string `json:"flow_token"`
 		Status    string `json:"status"`
 		Subtasks  []struct {
-			SubtaskID   string `json:"subtask_id"`
-			OpenAccount struct {
-				OAuthToken       string `json:"oauth_token"`
-				OAuthTokenSecret string `json:"oauth_token_secret"`
-			} `json:"open_account"`
+			SubtaskID   string      `json:"subtask_id"`
+			OpenAccount OpenAccount `json:"open_account"`
 		} `json:"subtasks"`
 	}
 
@@ -85,7 +89,7 @@ func (s *Scraper) getFlow(data map[string]interface{}) (*flow, error) {
 	headers := http.Header{
 		"Authorization":             []string{"Bearer " + s.bearerToken},
 		"Content-Type":              []string{"application/json"},
-		"User-Agent":                []string{"TwitterAndroid/99"},
+		"User-Agent":                []string{s.userAgent},
 		"X-Guest-Token":             []string{s.guestToken},
 		"X-Twitter-Auth-Type":       []string{"OAuth2Client"},
 		"X-Twitter-Active-User":     []string{"yes"},
@@ -101,6 +105,7 @@ func (s *Scraper) getFlow(data map[string]interface{}) (*flow, error) {
 		return nil, err
 	}
 	req.Header = headers
+	s.setCSRFToken(req)
 
 	resp, err := s.client.Do(req)
 	if err != nil {
@@ -127,13 +132,15 @@ func (s *Scraper) getFlowToken(data map[string]interface{}) (string, error) {
 		return "", fmt.Errorf("auth error (%d): %v", info.Errors[0].Code, info.Errors[0].Message)
 	}
 
-	if info.Subtasks != nil && len(info.Subtasks) > 0 {
+	if len(info.Subtasks) > 0 {
 		if info.Subtasks[0].SubtaskID == "LoginEnterAlternateIdentifierSubtask" {
 			err = fmt.Errorf("auth error: %v", "LoginEnterAlternateIdentifierSubtask")
 		} else if info.Subtasks[0].SubtaskID == "LoginAcid" {
 			err = fmt.Errorf("auth error: %v", "LoginAcid")
 		} else if info.Subtasks[0].SubtaskID == "LoginTwoFactorAuthChallenge" {
 			err = fmt.Errorf("auth error: %v", "LoginTwoFactorAuthChallenge")
+		} else if info.Subtasks[0].SubtaskID == "DenyLoginSubtask" {
+			err = fmt.Errorf("auth error: %v", "DenyLoginSubtask")
 		}
 	}
 
@@ -159,6 +166,12 @@ func (s *Scraper) IsLoggedIn() bool {
 	return s.isLogged
 }
 
+// randomDelay introduces a random delay between 1 and 3 seconds
+func randomDelay() {
+	delay := time.Duration(3000+rand.Intn(5000)) * time.Millisecond
+	time.Sleep(delay)
+}
+
 // Login to Twitter
 // Use Login(username, password) for ordinary login
 // or Login(username, password, email) for login if you have email confirmation
@@ -181,6 +194,8 @@ func (s *Scraper) Login(credentials ...string) error {
 		return err
 	}
 
+	randomDelay()
+
 	// flow start
 	data := map[string]interface{}{
 		"flow_name": "login",
@@ -196,6 +211,8 @@ func (s *Scraper) Login(credentials ...string) error {
 		return err
 	}
 
+	randomDelay()
+
 	// flow instrumentation step
 	data = map[string]interface{}{
 		"flow_token": flowToken,
@@ -210,6 +227,8 @@ func (s *Scraper) Login(credentials ...string) error {
 	if err != nil {
 		return err
 	}
+
+	randomDelay()
 
 	// flow username step
 	data = map[string]interface{}{
@@ -234,6 +253,8 @@ func (s *Scraper) Login(credentials ...string) error {
 		return err
 	}
 
+	randomDelay()
+
 	// flow password step
 	data = map[string]interface{}{
 		"flow_token": flowToken,
@@ -248,6 +269,8 @@ func (s *Scraper) Login(credentials ...string) error {
 	if err != nil {
 		return err
 	}
+
+	randomDelay()
 
 	// flow duplication check
 	data = map[string]interface{}{
@@ -272,6 +295,9 @@ func (s *Scraper) Login(credentials ...string) error {
 			if confirmation == "" {
 				return fmt.Errorf("confirmation data required for %v", confirmationSubtask)
 			}
+
+			randomDelay()
+
 			// flow confirmation
 			data = map[string]interface{}{
 				"flow_token": flowToken,
@@ -292,20 +318,21 @@ func (s *Scraper) Login(credentials ...string) error {
 	}
 
 	s.isLogged = true
+	s.isOpenAccount = false
 	return nil
 }
 
 // LoginOpenAccount as Twitter app
-func (s *Scraper) LoginOpenAccount() error {
+func (s *Scraper) LoginOpenAccount() (OpenAccount, error) {
 	accessToken, err := s.getAccessToken(appConsumerKey, appConsumerSecret)
 	if err != nil {
-		return err
+		return OpenAccount{}, err
 	}
 	s.setBearerToken(accessToken)
 
 	err = s.GetGuestToken()
 	if err != nil {
-		return err
+		return OpenAccount{}, err
 	}
 
 	// flow start
@@ -320,7 +347,7 @@ func (s *Scraper) LoginOpenAccount() error {
 	}
 	flowToken, err := s.getFlowToken(data)
 	if err != nil {
-		return err
+		return OpenAccount{}, err
 	}
 
 	// flow next link
@@ -334,17 +361,32 @@ func (s *Scraper) LoginOpenAccount() error {
 	}
 	info, err := s.getFlow(data)
 	if err != nil {
-		return err
+		return OpenAccount{}, err
 	}
 
-	if info.Subtasks != nil && len(info.Subtasks) > 0 {
+	if len(info.Subtasks) > 0 {
 		if info.Subtasks[0].SubtaskID == "OpenAccount" {
 			s.oAuthToken = info.Subtasks[0].OpenAccount.OAuthToken
 			s.oAuthSecret = info.Subtasks[0].OpenAccount.OAuthTokenSecret
+			if s.oAuthToken == "" || s.oAuthSecret == "" {
+				return OpenAccount{}, fmt.Errorf("auth error: %v", "Token or Secret is empty")
+			}
 			s.isLogged = true
+			s.isOpenAccount = true
+			return OpenAccount{
+				OAuthToken:       info.Subtasks[0].OpenAccount.OAuthToken,
+				OAuthTokenSecret: info.Subtasks[0].OpenAccount.OAuthTokenSecret,
+			}, nil
 		}
 	}
-	return nil
+	return OpenAccount{}, fmt.Errorf("auth error: %v", "OpenAccount")
+}
+
+func (s *Scraper) WithOpenAccount(openAccount OpenAccount) {
+	s.oAuthToken = openAccount.OAuthToken
+	s.oAuthSecret = openAccount.OAuthTokenSecret
+	s.isLogged = true
+	s.isOpenAccount = true
 }
 
 // Logout is reset session
@@ -359,6 +401,7 @@ func (s *Scraper) Logout() error {
 	}
 
 	s.isLogged = false
+	s.isOpenAccount = false
 	s.guestToken = ""
 	s.oAuthToken = ""
 	s.oAuthSecret = ""
@@ -381,6 +424,50 @@ func (s *Scraper) GetCookies() []*http.Cookie {
 
 func (s *Scraper) SetCookies(cookies []*http.Cookie) {
 	s.client.Jar.SetCookies(twURL, cookies)
+}
+
+func (s *Scraper) ClearCookies() {
+	s.client.Jar, _ = cookiejar.New(nil)
+}
+
+// Use auth_token cookie as Token and ct0 cookie as CSRFToken
+type AuthToken struct {
+	Token     string
+	CSRFToken string
+}
+
+// Auth using auth_token and ct0 cookies
+func (s *Scraper) SetAuthToken(token AuthToken) {
+	expires := time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC)
+	cookies := []*http.Cookie{{
+		Name:       "auth_token",
+		Value:      token.Token,
+		Path:       "",
+		Domain:     "twitter.com",
+		Expires:    expires,
+		RawExpires: "",
+		MaxAge:     0,
+		Secure:     false,
+		HttpOnly:   false,
+		SameSite:   0,
+		Raw:        "",
+		Unparsed:   nil,
+	}, {
+		Name:       "ct0",
+		Value:      token.CSRFToken,
+		Path:       "",
+		Domain:     "twitter.com",
+		Expires:    expires,
+		RawExpires: "",
+		MaxAge:     0,
+		Secure:     false,
+		HttpOnly:   false,
+		SameSite:   0,
+		Raw:        "",
+		Unparsed:   nil,
+	}}
+
+	s.SetCookies(cookies)
 }
 
 func (s *Scraper) sign(method string, ref *url.URL) string {

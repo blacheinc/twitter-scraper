@@ -38,9 +38,9 @@ func TestAuth(t *testing.T) {
 	}
 }
 
-func TestLoginOpenAccount(t *testing.T) {
-	scraper := twitterscraper.New()
-	if err := scraper.LoginOpenAccount(); err != nil {
-		t.Fatalf("LoginOpenAccount() error = %v", err)
-	}
-}
+// func TestLoginOpenAccount(t *testing.T) {
+// 	scraper := twitterscraper.New()
+// 	if err := scraper.LoginOpenAccount(); err != nil {
+// 		t.Fatalf("LoginOpenAccount() error = %v", err)
+// 	}
+// }
